@@ -1,0 +1,80 @@
+#include <FastLED.h>
+
+// ── LED Setup ────────────────────────────────────────
+#define LED_PIN     6
+#define NUM_LEDS    64
+#define BRIGHTNESS  40        // ← CHANGE THIS NUMBER HERE
+#define LED_TYPE    WS2812B
+#define COLOR_ORDER GRB
+
+CRGB leds[NUM_LEDS];
+
+// ── Pin Definitions ──────────────────────────────────
+#define TRIG_PIN    9
+#define ECHO_PIN    10
+#define BUZZER_PIN  8
+
+// ── Alert Zones (in cm) ──────────────────────────────
+#define DANGER_ZONE   20
+#define WARNING_ZONE  60
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.clear();
+  FastLED.show();
+}
+
+void loop() {
+  long distance = getDistance();
+
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  if (distance > 0 && distance <= DANGER_ZONE) {
+    alertBuzz(80, 80);
+    setAllLEDs(CRGB::Red);        // Red = danger
+
+  } else if (distance > DANGER_ZONE && distance <= WARNING_ZONE) {
+    alertBuzz(200, 400);
+    setAllLEDs(CRGB::Orange);     // Orange = warning
+
+  } else {
+    noTone(BUZZER_PIN);
+    setAllLEDs(CRGB::Green);      // Green = all clear
+    delay(100);
+  }
+}
+
+// ── Set all LEDs to one color ─────────────────────────
+void setAllLEDs(CRGB color) {
+  fill_solid(leds, NUM_LEDS, color);
+  FastLED.show();
+}
+
+// ── Measure Distance ─────────────────────────────────
+long getDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  long distance = (duration / 2) / 29.1;
+  return distance;
+}
+
+// ── Buzzer ────────────────────────────────────────────
+void alertBuzz(int onTime, int offTime) {
+  tone(BUZZER_PIN, 1000);
+  delay(onTime);
+  noTone(BUZZER_PIN);
+  delay(offTime);
+}
