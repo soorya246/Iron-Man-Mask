@@ -1,0 +1,25 @@
+import vosk
+import pyaudio
+import json
+
+model = vosk.Model("vosk-model-small-en-us-0.15")
+p = pyaudio.PyAudio()
+
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, input_device_index=2, frames_per_buffer=819>
+
+# Only listen for these specific words
+rec = vosk.KaldiRecognizer(model, 44100, '["open", "close", "jarvis", "mask", "[unk]"]')
+
+print("Listening...")
+
+while True:
+    data = stream.read(4096, exception_on_overflow=False)
+    if rec.AcceptWaveform(data):
+        result = json.loads(rec.Result())
+        text = result.get("text", "")
+        if text and text != "[unk]":
+            print(f"You said: {text}")
+            if "open" in text:
+                print("Opening mask!")
+            elif "close" in text:
+                print("Closing mask!")
